@@ -329,11 +329,6 @@
             transform: translateY(-2px);
         }
 
-        .quality-btn.best-q {
-            border-color: rgba(124, 111, 255, 0.5);
-            background: rgba(124, 111, 255, 0.08);
-        }
-
         .quality-btn .q-label {
             font-size: 15px;
             font-weight: 600;
@@ -514,26 +509,25 @@
             const seen = new Set();
             const videoFmts = (data.formats || []).filter(f => f.has_video).sort((a, b) => (b.height || 0) - (a.height || 0));
             const audioFmts = (data.formats || []).filter(f => f.has_audio && !f.has_video).sort((a, b) => (b.abr || 0) - (a.abr || 0));
-            let bestIdx = 0;
             videoFmts.forEach((fmt, i) => {
                 const h = fmt.height || '?';
-                const key = `${h}_${fmt.has_audio}`;
+                const fpsVal = fmt.fps || 0;
+                const key = `${h}_${fmt.has_audio}_${fpsVal}`;
                 if (seen.has(key)) return;
                 seen.add(key);
                 const label = h === '?' ? 'auto' : `${h}p`;
-                const fps = fmt.fps ? `${fmt.fps}fps` : '';
+                const fps = fpsVal ? `${fpsVal}fps` : '';
                 const size = fmtBytes(fmt.filesize);
                 // has_audio=true → نزّل مباشرة | has_audio=false → سيرفر هيدمج
                 const dlUrl = `${SERVER}/download?url=${pageUrl}&format_id=${encodeURIComponent(fmt.format_id)}&has_audio=${fmt.has_audio}`;
                 const a = document.createElement('a');
-                a.className = 'quality-btn' + (bestIdx === 0 ? ' best-q' : '');
+                a.className = 'quality-btn';
                 a.href = dlUrl;
                 a.target = '_blank';
                 a.rel = 'noopener noreferrer';
                 const audioLabel = fmt.has_audio ? '📹 فيديو+صوت' : '🎬 فيديو+صوت 🔀';
                 a.innerHTML = `<span class="q-label">${label}</span><span class="q-info">${(fmt.ext || '').toUpperCase()}${fps ? ' · ' + fps : ''}</span><span class="q-info">${audioLabel}</span>${size ? `<span class="q-info" style="color:var(--dimmed)">${size}</span>` : ''}`;
                 qGrid.appendChild(a);
-                bestIdx++;
             });
             if (!qGrid.children.length) qGrid.innerHTML = '<div style="color:#8888a8;padding:8px;">⚠ مفيش روابط متاحة</div>';
             const aGrid = document.getElementById('audioGrid');
