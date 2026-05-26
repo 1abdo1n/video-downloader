@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Video Downloader</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0c0c0e;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(ellipse, rgba(124, 111, 255, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(124, 111, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124, 111, 255, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 44px;
+        }
+
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #1c1c26;
+            border: 1px solid #2a2a3a;
+            border-radius: 100px;
+            padding: 6px 16px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #a08fff;
+            letter-spacing: 2px;
+            margin-bottom: 18px;
+        }
+
+        .logo-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #7c6fff;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        h1 {
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: -1px;
+            line-height: 1.1;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #e8e8f0 30%, #7c6fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #8888a8;
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        .card {
+            background: #14141a;
+            border: 1px solid #2a2a3a;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            font-size: 12px;
+            font-family: monospace;
+            color: #8888a8;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .url-input {
+            width: 100%;
+            background: #0c0c0e;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: #e8e8f0;
+            font-size: 14px;
+            font-family: monospace;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            direction: ltr;
+        }
+
+        .url-input:focus {
+            border-color: #7c6fff;
+            box-shadow: 0 0 0 3px rgba(124, 111, 255, 0.12);
+        }
+
+        .btn-download {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            background: #7c6fff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-download:hover {
+            background: #6b5fff;
+            transform: translateY(-1px);
+        }
+
+        .btn-download:disabled {
+            background: #55556a;
+            cursor: not-allowed;
+        }
+
+        .status-box {
+            background: #14141a;
+            border: 1px solid #2a2a3a;
+            border-radius: 16px;
+            padding: 24px;
+            display: none;
+        }
+
+        .status-box.visible {
+            display: block;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.loading {
+            background: #fbbf24;
+            animation: pulse 1s infinite;
+        }
+
+        .status-dot.success {
+            background: #4ade80;
+        }
+
+        .status-dot.error {
+            background: #f87171;
+        }
+
+        .status-text {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-text.loading {
+            color: #fbbf24;
+        }
+
+        .status-text.success {
+            color: #4ade80;
+        }
+
+        .status-text.error {
+            color: #f87171;
+        }
+
+        .progress-log {
+            font-family: monospace;
+            font-size: 11px;
+            color: #55556a;
+            margin-bottom: 10px;
+        }
+
+        .log-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .log-line.done {
+            color: #4ade80;
+        }
+
+        .log-line.fail {
+            color: #f87171;
+        }
+
+        .yt-result {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .yt-result.visible {
+            display: flex;
+        }
+
+        .yt-info {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .yt-thumb {
+            width: 120px;
+            height: 68px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #3a3a50;
+        }
+
+        .yt-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .yt-channel {
+            font-size: 12px;
+            color: #8888a8;
+        }
+
+        .hdivider {
+            height: 1px;
+            background: #2a2a3a;
+            margin: 10px 0;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-family: monospace;
+            color: #55556a;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .quality-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+        }
+
+        .quality-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 10px 8px;
+            background: #1c1c26;
+            border: 1px solid #3a3a50;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            color: #e8e8f0;
+        }
+
+        .quality-btn:hover {
+            border-color: #7c6fff;
+            background: rgba(124, 111, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .quality-btn.best-q {
+            border-color: rgba(124, 111, 255, 0.5);
+            background: rgba(124, 111, 255, 0.08);
+        }
+
+        .quality-btn .q-label {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .quality-btn .q-info {
+            font-size: 10px;
+            color: #8888a8;
+        }
+
+        .audio-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .audio-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(74, 222, 128, 0.06);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 8px;
+            text-decoration: none;
+            color: #4ade80;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .audio-btn:hover {
+            background: rgba(74, 222, 128, 0.12);
+            border-color: #4ade80;
+        }
+
+        .error-msg {
+            font-size: 13px;
+            color: #f87171;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .server-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-family: monospace;
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.08);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 6px;
+            padding: 4px 10px;
+            margin-bottom: 20px;
+        }
+
+        .note-box {
+            background: rgba(124, 111, 255, 0.06);
+            border: 1px solid rgba(124, 111, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #8888a8;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="container">
+        <header>
+            <div class="logo-badge">VIDEO DOWNLOADER</div>
+            <h1>نزّل أي فيديو</h1>
+            <p class="subtitle">يوتيوب + كل المنصات — مدعوم بـ yt-dlp</p>
+        </header>
+
+        <div class="card">
+            <div class="server-tag" id="serverTag">⏳ جاري فحص السيرفر...</div>
+            <label class="input-label" for="videoUrl">رابط الفيديو</label>
+            <input type="url" id="videoUrl" class="url-input" placeholder="https://www.youtube.com/watch?v=... أو أي منصة"
+                autocomplete="off" spellcheck="false" />
+            <button class="btn-download" id="downloadBtn" onclick="fetchInfo()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                جيب الجودات المتاحة
+            </button>
+        </div>
+
+        <div class="status-box" id="statusBox">
+            <div class="status-header">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText"></span>
+            </div>
+            <div class="progress-log" id="progressLog"></div>
+            <div class="yt-result" id="ytResult">
+                <div class="yt-info" id="ytInfo"></div>
+                <div class="hdivider"></div>
+                <div class="section-title">🎬 فيديو</div>
+                <div class="quality-grid" id="qualityGrid"></div>
+                <div id="audioSection">
+                    <div class="hdivider"></div>
+                    <div class="section-title">🎵 صوت فقط</div>
+                    <div class="audio-grid" id="audioGrid"></div>
+                </div>
+                <div class="note-box">
+                    ⚡ لما تضغط على جودة — السيرفر هينزلها ويبعتهالك مباشرة.<br>
+                    ⏳ الجودات العالية (1080p+) ممكن تاخد وقت أكتر للدمج.
+                </div>
+            </div>
+            <div id="errorMsg" class="error-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER = window.location.origin;
+
+        function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        function fmtBytes(b) { if (!b) return ''; if (b > 1073741824) return (b / 1073741824).toFixed(1) + ' GB'; if (b > 1048576) return (b / 1048576).toFixed(0) + ' MB'; return (b / 1024).toFixed(0) + ' KB'; }
+        function fmtDur(s) { if (!s) return ''; const m = Math.floor(s / 60), sec = s % 60; return `${m}:${String(sec).padStart(2, '0')}`; }
+
+        let logs = [];
+        function setStatus(type, msg) {
+            document.getElementById('statusBox').classList.add('visible');
+            document.getElementById('statusDot').className = `status-dot ${type}`;
+            const s = document.getElementById('statusText');
+            s.className = `status-text ${type}`;
+            s.textContent = msg;
+        }
+        function clearLog() { logs = []; renderLog(); }
+        function addLog(t, s = '') { logs.push({ t, s }); renderLog(); }
+        function updLog(t, s) { if (logs.length) { logs[logs.length - 1] = { t, s }; renderLog(); } }
+        function renderLog() {
+            document.getElementById('progressLog').innerHTML = logs.slice(-6).map(l => `<div class="log-line ${l.s}">${l.s === 'done' ? '✓' : l.s === 'fail' ? '✗' : '›'} ${esc(l.t)}</div>`).join('');
+        }
+
+        async function checkServer() {
+            const tag = document.getElementById('serverTag');
+            try {
+                const res = await fetch(`${SERVER}/ping`, { signal: AbortSignal.timeout(6000) });
+                const d = await res.json();
+                const ffmpegIcon = d.ffmpeg ? '🎬 ffmpeg ✓' : '⚠ ffmpeg غير مثبت';
+                const ffmpegColor = d.ffmpeg ? '' : 'color:#fbbf24;';
+                tag.innerHTML = `✓ السيرفر شغال &nbsp;|&nbsp; <span style="${ffmpegColor}">${ffmpegIcon}</span>`;
+                tag.style.color = '#4ade80';
+            } catch (e) {
+                tag.textContent = `✗ السيرفر مش شغال — ${SERVER}`;
+                tag.style.cssText = 'color:#f87171;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.06)';
+            }
+        }
+
+        function renderResults(data, pageUrl) {
+            setStatus('success', `جاهز! ${data.formats?.length || 0} صيغة متاحة 🎬`);
+            document.getElementById('ytInfo').innerHTML = `
+                ${data.thumbnail ? `<img class="yt-thumb" src="${esc(data.thumbnail)}" alt="" onerror="this.style.display='none'">` : ''}
+                <div style="flex:1;min-width:0">
+                    <div class="yt-title">${esc(data.title || 'Video')}</div>
+                    <div class="yt-channel">📺 ${esc(data.uploader || '')}${data.duration ? ' · ⏱ ' + fmtDur(data.duration) : ''}</div>
+                </div>`;
+            const qGrid = document.getElementById('qualityGrid');
+            qGrid.innerHTML = '';
+            const seen = new Set();
+            const videoFmts = (data.formats || []).filter(f => f.has_video).sort((a, b) => (b.height || 0) - (a.height || 0));
+            const audioFmts = (data.formats || []).filter(f => f.has_audio && !f.has_video).sort((a, b) => (b.abr || 0) - (a.abr || 0));
+            let bestIdx = 0;
+            videoFmts.forEach((fmt, i) => {
+                const h = fmt.height || '?';
+                const key = `${h}_${fmt.has_audio}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                const label = h === '?' ? 'auto' : `${h}p`;
+                const fps = fmt.fps ? `${fmt.fps}fps` : '';
+                const size = fmtBytes(fmt.filesize);
+                // has_audio=true → نزّل مباشرة | has_audio=false → سيرفر هيدمج
+                const dlUrl = `${SERVER}/download?url=${pageUrl}&format_id=${encodeURIComponent(fmt.format_id)}&has_audio=${fmt.has_audio}`;
+                const a = document.createElement('a');
+                a.className = 'quality-btn' + (bestIdx === 0 ? ' best-q' : '');
+                a.href = dlUrl;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                const audioLabel = fmt.has_audio ? '📹 فيديو+صوت' : '🎬 فيديو+صوت 🔀';
+                a.innerHTML = `<span class="q-label">${label}</span><span class="q-info">${(fmt.ext || '').toUpperCase()}${fps ? ' · ' + fps : ''}</span><span class="q-info">${audioLabel}</span>${size ? `<span class="q-info" style="color:var(--dimmed)">${size}</span>` : ''}`;
+                qGrid.appendChild(a);
+                bestIdx++;
+            });
+            if (!qGrid.children.length) qGrid.innerHTML = '<div style="color:#8888a8;padding:8px;">⚠ مفيش روابط متاحة</div>';
+            const aGrid = document.getElementById('audioGrid');
+            aGrid.innerHTML = '';
+            audioFmts.slice(0, 6).forEach(fmt => {
+                const br = fmt.abr ? `${Math.round(fmt.abr)}kbps` : '';
+                const size = fmtBytes(fmt.filesize);
+                const dlUrl = `${SERVER}/download?url=${pageUrl}&format_id=${encodeURIComponent(fmt.format_id)}`;
+                const a = document.createElement('a');
+                a.className = 'audio-btn';
+                a.href = dlUrl;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.textContent = `🎵 ${(fmt.ext || '').toUpperCase()} ${br}${size ? ' · ' + size : ''}`;
+                aGrid.appendChild(a);
+            });
+            document.getElementById('audioSection').style.display = audioFmts.length ? '' : 'none';
+            document.getElementById('ytResult').classList.add('visible');
+        }
+
+        async function fetchInfo() {
+            const url = document.getElementById('videoUrl').value.trim();
+            const btn = document.getElementById('downloadBtn');
+            if (!url) { alert('أدخل رابط الفيديو'); return; }
+            if (!url.startsWith('http')) { alert('الرابط غير صحيح — يجب أن يبدأ بـ https://'); return; }
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> جاري الجلب...';
+            document.getElementById('statusBox').classList.add('visible');
+            document.getElementById('ytResult').classList.remove('visible');
+            document.getElementById('errorMsg').textContent = '';
+            clearLog();
+            try {
+                setStatus('loading', '⏳ جاري جلب معلومات الفيديو...');
+                addLog('اتصال بالسيرفر...', 'active');
+                const res = await fetch(`${SERVER}/info?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(90000) });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+                updLog(`تم — ${data.formats?.length || 0} صيغة ✓`, 'done');
+                const pageUrl = encodeURIComponent(data.webpage_url || url);
+                renderResults(data, pageUrl);
+            } catch (e) {
+                let msg = e.message;
+                if (e.message.includes('Failed to fetch') || e.message.includes('ERR_CONNECTION')) msg = 'مش قادر يوصل للسيرفر — تأكد إنه شغال';
+                setStatus('error', 'حصلت مشكلة');
+                document.getElementById('errorMsg').textContent = msg;
+                addLog(e.message, 'fail');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>جيب الجودات المتاحة`;
+            }
+        }
+
+        document.getElementById('videoUrl').addEventListener('keydown', e => { if (e.key === 'Enter') fetchInfo(); });
+        checkServer();
+    </script>
+</body>
+</html>

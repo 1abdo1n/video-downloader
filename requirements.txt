@@ -1,0 +1,8 @@
+Flask
+flask-cors
+yt-dlp
+requests
+beautifulsoup4
+pytube
+instaloader
+imageio-ffmpeg
