@@ -251,7 +251,7 @@ def get_other_opts(url='', extra=None):
 def merge_video_audio(video_path, audio_path, output_path):
     cmd = [FFMPEG_EXE, '-y', '-i', video_path, '-i', audio_path,
            '-c:v', 'copy', '-c:a', 'aac', '-strict', 'experimental', output_path]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
     if r.returncode != 0:
         print(f'[ffmpeg error]\n{r.stderr[-500:]}')
         return False
