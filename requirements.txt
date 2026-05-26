@@ -6,3 +6,4 @@ beautifulsoup4
 pytube
 instaloader
 imageio-ffmpeg
+gunicorn
